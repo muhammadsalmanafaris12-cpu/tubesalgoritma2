@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRACKTIX - Pusat Kompetisi</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div>
+                    <h2 class="brand-logo">BRACKTIX</h2>
+                    <p class="brand-subtitle">Pusat Peserta</p>
+                </div>
+            </div>
+
+            <ul class="nav-menu">
+                <li class="nav-item active" onclick="showSection('section-dashboard')">
+                    <a href="javascript:void(0)"><i class="fa-solid fa-chart-line"></i> Dasbor</a>
+                </li>
+                <li class="nav-item" onclick="showSection('section-brackets')">
+                    <a href="javascript:void(0)"><i class="fa-solid fa-sitemap"></i> Bagan</a>
+                </li>
+                <li class="nav-item" onclick="showSection('section-schedule')">
+                    <a href="javascript:void(0)"><i class="fa-solid fa-calendar-days"></i> Jadwal</a>
+                </li>
+            </ul>
+
+            <div class="user-profile-widget">
+                <span class="user-profile-name" th:text="${session.user != null ? session.user.username : 'Captain'}">Captain</span>
+                <span class="user-profile-role">KAPTEN TIM</span>
+                <a th:href="@{/logout}" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Keluar</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- HEADER -->
+            <div class="header-container">
+                <div class="header-title">
+                    <h1>Pusat Kompetisi</h1>
+                    <p>Pantau perkembangan turnamen tim esports Anda secara real-time</p>
+                </div>
+                <div>
+                    <span class="card-badge status-running" style="padding: 0.5rem 1rem; font-size: 0.8rem; border-radius: 20px;">
+                        <i class="fa-solid fa-circle-dot" style="color: var(--accent); margin-right: 0.25rem;"></i> Peserta Terhubung
+                    </span>
+                </div>
+            </div>
+
+            <!-- ======================== SECTION: MAIN DASHBOARD ======================== -->
+            <div id="section-dashboard" class="dashboard-section">
+
+                <!-- Active Cup Banner -->
+                <div th:if="${activeCup != null}" class="active-cup-banner">
+                    <div class="active-cup-info">
+                        <p style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; color: var(--secondary);">Piala Aktif</p>
+                        <h3 th:text="${activeCup.name + ' (' + activeCup.game + ')'}">Valorant Pro Series</h3>
+                        <p><i class="fa-solid fa-calendar"></i> Mulai: <span th:text="${#temporals.format(activeCup.startDate, 'dd-MM-yyyy')}">15 Aug 2026</span></p>
+                    </div>
+                    <div>
+                        <span class="card-badge status-running">Running</span>
+                    </div>
+                </div>
+
+                <div th:if="${activeCup == null}" class="active-cup-banner" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(18, 16, 30, 0.9)); border-color: var(--danger);">
+                    <div class="active-cup-info">
+                        <h3>Tidak Ada Turnamen Berjalan</h3>
+                        <p>Tunggu penyelenggara membuka kompetisi turnamen esports baru.</p>
+                    </div>
+                </div>
+
+                <!-- View Tournament Detail Panel (Condition 1 & 2) -->
+                <div th:if="${viewTournament != null}" class="card mb-4" style="border-color: var(--primary);">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                        <h3 class="card-title" style="color: var(--secondary); display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                            <i class="fa-solid fa-trophy"></i>
+                            <span th:text="${viewTournament.name} + ' (' + ${viewTournament.game} + ')'">Detail Turnamen</span>
+                        </h3>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <span class="card-badge"
+                                  th:classappend="${viewTournament.status == 'BERJALAN' ? 'status-running' : 'status-finished'}"
+                                  th:text="${viewTournament.status == 'BERJALAN' ? 'BERJALAN' : 'SELESAI'}">BERJALAN</span>
+                            <a th:href="@{/user/dashboard}" class="btn btn-secondary btn-sm" style="text-decoration: none; padding: 0.25rem 0.6rem; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem;">
+                                Tutup <i class="fa-solid fa-xmark"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Condition 1: Tournament is BERJALAN -->
+                    <div th:if="${viewTournament.status == 'BERJALAN'}">
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; margin-top: 0;">
+                            Turnamen ini sedang berlangsung. Di bawah ini adalah riwayat pertandingan yang sudah selesai bertanding hari ini beserta jadwal pertandingan mendatang.
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <!-- Riwayat Pertandingan (Finished) -->
+                            <div class="card" style="background: rgba(0,0,0,0.15); margin-bottom: 0; padding: 1rem; border: 1px solid var(--border);">
+                                <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                                    <h4 class="card-title" style="font-size: 0.95rem; color: var(--accent); margin: 0;"><i class="fa-solid fa-square-check"></i> Riwayat Pertandingan (Selesai)</h4>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 300px; overflow-y: auto;">
+                                    <div th:each="m : ${viewMatches}" th:if="${m.status == 'FINISHED'}"
+                                         style="padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.2);">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="font-size: 0.8rem; color: var(--text-muted);" th:text="'Putaran ' + ${m.round}">Putaran 1</span>
+                                            <span class="card-badge status-finished" style="font-size: 0.7rem; padding: 0.1rem 0.4rem;">Selesai</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                                            <strong th:text="${m.team1Name}" th:style="${m.winnerTeamId == m.team1Id ? 'color: var(--secondary)' : 'color: #fff'}">Tim A</strong>
+                                            <span th:text="${m.team1Score} + ' - ' + ${m.team2Score}" style="font-size: 1rem; color: var(--accent); font-weight: bold; font-family: monospace;">2 - 0</span>
+                                            <strong th:text="${m.team2Name}" th:style="${m.winnerTeamId == m.team2Id ? 'color: var(--secondary)' : 'color: #fff'}">Tim B</strong>
+                                        </div>
+                                    </div>
+                                    <div th:if="${#lists.isEmpty(viewMatches.?[status == 'FINISHED'])}" class="text-center text-muted" style="padding: 1.5rem; font-size: 0.85rem;">
+                                        Belum ada pertandingan selesai hari ini.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Jadwal Pertandingan (Scheduled) -->
+                            <div class="card" style="background: rgba(0,0,0,0.15); margin-bottom: 0; padding: 1rem; border: 1px solid var(--border);">
+                                <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                                    <h4 class="card-title" style="font-size: 0.95rem; color: var(--secondary); margin: 0;"><i class="fa-solid fa-calendar"></i> Jadwal Pertandingan</h4>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 300px; overflow-y: auto;">
+                                    <div th:each="m : ${viewMatches}" th:if="${m.status == 'SCHEDULED'}"
+                                         style="padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.2);">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="font-size: 0.8rem; color: var(--text-muted);" th:text="'Putaran ' + ${m.round}">Putaran 1</span>
+                                            <span class="card-badge status-running" style="font-size: 0.7rem; padding: 0.1rem 0.4rem;">Terjadwal</span>
+                                        </div>
+                                        <div style="text-align: center; font-size: 0.9rem; margin: 0.5rem 0; font-weight: bold; color: #fff;">
+                                            <span th:text="${m.team1Name}">Tim A</span> VS <span th:text="${m.team2Name}">Tim B</span>
+                                        </div>
+                                        <div style="font-size: 0.8rem; color: var(--secondary); text-align: center;">
+                                            <i class="fa-solid fa-clock"></i> <span th:text="${m.jadwalTanding != null ? m.jadwalTanding : 'Belum dijadwalkan'}">Senin, 20:00</span>
+                                        </div>
+                                    </div>
+                                    <div th:if="${#lists.isEmpty(viewMatches.?[status == 'SCHEDULED'])}" class="text-center text-muted" style="padding: 1.5rem; font-size: 0.85rem;">
+                                        Tidak ada pertandingan terjadwal berikutnya.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Condition 2: Tournament is SELESAI -->
+                    <div th:if="${viewTournament.status == 'SELESAI'}">
+                        <div style="padding: 1rem; background: rgba(168, 85, 247, 0.1); border: 1px solid var(--primary); border-radius: 8px; margin-bottom: 1.5rem; text-align: center;">
+                            <i class="fa-solid fa-crown" style="font-size: 2.2rem; color: #fbbf24; margin-bottom: 0.25rem; display: block;"></i>
+                            <h4 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; color: #fff; font-weight: 500;">Juara Umum Turnamen</h4>
+                            <strong th:text="${viewTournament.championTeamName}" style="font-size: 1.4rem; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.5px;">Tim Juara</strong>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+                            <!-- Tim yang Berpartisipasi -->
+                            <div class="card" style="background: rgba(0,0,0,0.15); margin-bottom: 0; padding: 1rem; border: 1px solid var(--border);">
+                                <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                                    <h4 class="card-title" style="font-size: 0.95rem; color: var(--secondary); margin: 0;"><i class="fa-solid fa-users"></i> Tim Berpartisipasi</h4>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 300px; overflow-y: auto;">
+                                    <div th:each="t : ${viewTeams}"
+                                         style="padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: rgba(255,255,255,0.02); display: flex; justify-content: flex-start; align-items: center;">
+                                        <span th:text="${t.name}" style="font-weight: 600; color: #fff; font-size: 0.85rem;">Nama Tim</span>
+                                    </div>
+                                    <div th:if="${viewTeams == null or viewTeams.isEmpty()}" class="text-center text-muted" style="padding: 1rem; font-size: 0.85rem;">
+                                        Tidak ada data tim.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Rekam Jejak Pertandingan -->
+                            <div class="card" style="background: rgba(0,0,0,0.15); margin-bottom: 0; padding: 1rem; border: 1px solid var(--border);">
+                                <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                                    <h4 class="card-title" style="font-size: 0.95rem; color: var(--accent); margin: 0;"><i class="fa-solid fa-history"></i> Rekam Jejak Pertandingan</h4>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 300px; overflow-y: auto;">
+                                    <div th:each="m : ${viewMatches}"
+                                         style="padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.2);">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="font-size: 0.8rem; color: var(--text-muted);" th:text="'Putaran ' + ${m.round}">Putaran 1</span>
+                                            <span class="card-badge"
+                                                  th:classappend="${m.status == 'FINISHED' ? 'status-finished' : 'status-running'}"
+                                                  th:text="${m.status == 'FINISHED' ? 'SELESAI' : (m.status == 'BYE' ? 'BYE' : 'TERJADWAL')}">FINISHED</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                                            <strong th:text="${m.team1Name}" th:style="${m.winnerTeamId == m.team1Id ? 'color: var(--secondary)' : 'color: #fff'}">Tim A</strong>
+                                            <span th:text="${m.team1Score != null ? m.team1Score + ' - ' + m.team2Score : 'Belum tanding'}" style="font-size: 1rem; color: var(--accent); font-weight: bold; font-family: monospace;">2 - 0</span>
+                                            <strong th:text="${m.team2Name}" th:style="${m.winnerTeamId == m.team2Id ? 'color: var(--secondary)' : 'color: #fff'}">Tim B</strong>
+                                        </div>
+                                    </div>
+                                    <div th:if="${viewMatches == null or viewMatches.isEmpty()}" class="text-center text-muted" style="padding: 1rem; font-size: 0.85rem;">
+                                        Tidak ada data pertandingan.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Column 1: Team Registration or Info -->
+                    <div>
+                        <!-- Widget Tim Saya (jika sudah terdaftar) -->
+                        <div th:if="${myTeam != null}" class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fa-solid fa-shield-halved"></i> TIM SAYA: <span th:text="${myTeam.name}" style="color: var(--secondary);">AETHER SQUAD</span></h3>
+                                <span class="card-badge status-finished" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Terdaftar</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div style="padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border);">
+                                    <p style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Kapten Tim</p>
+                                    <strong th:text="${myTeam.captainName}" style="font-size: 1.1rem; color: #fff;">Captain Name</strong>
+                                </div>
+                                <div style="padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border);">
+                                    <p style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Kontak Resmi</p>
+                                    <strong th:text="${myTeam.contact}" style="font-size: 1rem; color: #fff;">0812-3456-7890</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Pendaftaran Skuad (jika belum terdaftar) -->
+                        <div th:if="${myTeam == null and activeCup != null}">
+                            <!-- Banner: Ikuti Turnamen Ini / Daftar Cup Baru -->
+                            <div id="joinTournamentBanner" class="card mb-3" style="border-color: var(--primary); background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(18, 16, 30, 0.95)); text-align: center;">
+                                <div class="card-header" style="border-bottom: none; padding-bottom: 0; justify-content: center;">
+                                    <h3 class="card-title" style="color: var(--secondary); font-size: 1.15rem;"><i class="fa-solid fa-bullhorn"></i> Pendaftaran Turnamen Dibuka!</h3>
+                                </div>
+                                <div style="padding: 1rem 1.5rem;">
+                                    <p style="color: var(--text-main); font-size: 0.9rem; margin-bottom: 1.25rem;">
+                                        Pendaftaran untuk turnamen <strong th:text="${activeCup.name}">Valorant Pro Series</strong> telah dibuka.
+                                    </p>
+                                    <button class="btn btn-primary w-100" onclick="toggleRegForm()">
+                                        Daftar Cup Baru / Ikuti Turnamen Ini <i class="fa-solid fa-gamepad"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Form Pendaftaran Ulang (Hidden by default, shown via toggle) -->
+                            <div id="registrationFormCard" class="card mb-3" style="display: none; border-color: var(--accent);">
+                                <div class="card-header">
+                                    <h3 class="card-title"><i class="fa-solid fa-user-plus"></i> PENDAFTARAN ULANG CUP</h3>
+                                    <span onclick="toggleRegForm()" style="cursor: pointer; font-size: 1.5rem; color: var(--text-muted);">&times;</span>
+                                </div>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+                                    Masukkan nama skuad dan kontak resmi kapten untuk berpartisipasi pada turnamen aktif saat ini.
+                                </p>
+                                <form th:action="@{/user/team/register}" method="POST">
+                                    <div class="form-group">
+                                        <label for="regTeamName">Nama Resmi Skuad</label>
+                                        <input type="text" id="regTeamName" name="name" class="form-control"
+                                               placeholder="Contoh: Indo Pride" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="regCaptainName">Nama Lengkap Kapten</label>
+                                        <input type="text" id="regCaptainName" name="captainName" class="form-control"
+                                               th:value="${session.user != null ? session.user.captainName : ''}"
+                                               required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="regContact">Kontak Kapten (WhatsApp/Email)</label>
+                                        <input type="text" id="regContact" name="contact" class="form-control"
+                                               th:value="${session.user != null ? session.user.contact : ''}"
+                                               required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100 mt-2">
+                                        Kirim Pendaftaran Cup <i class="fa-solid fa-lock-open"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Jika Tidak Ada Turnamen Aktif & Tim Belum Terdaftar -->
+                        <div th:if="${myTeam == null and activeCup == null}" class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fa-solid fa-shield"></i> Pendaftaran Dikunci</h3>
+                            </div>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem 0;">
+                                Tidak ada turnamen aktif yang sedang berjalan. Pendaftaran ditutup.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Match Monitor & Archive -->
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+                        <!-- Monitor Tanding Live -->
+                        <div class="card live-match-card">
+                            <div class="card-header" style="border-bottom-color: var(--primary);">
+                                <h3 class="card-title"><i class="fa-solid fa-circle-play" style="color: var(--accent);"></i> MONITOR TANDING LIVE</h3>
+                                <span class="card-badge status-running" style="background: rgba(217, 70, 239, 0.2); border-color: var(--accent); color: var(--accent);">Mendatang</span>
+                            </div>
+
+                            <!-- Has active match -->
+                            <div th:if="${activeMatch != null}" class="match-monitor-container">
+                                <div class="match-monitor-vs">
+                                    <div class="monitor-team">
+                                        <span class="monitor-team-name" th:text="${activeMatch.team1Name}">TEAM 1</span>
+                                        <span class="monitor-team-id" th:text="${activeMatch.team1Id}">T001</span>
+                                    </div>
+                                    <div class="monitor-vs-text">VS</div>
+                                    <div class="monitor-team">
+                                        <span class="monitor-team-name" th:text="${activeMatch.team2Name}">TEAM 2</span>
+                                        <span class="monitor-team-id" th:text="${activeMatch.team2Id}">T002</span>
+                                    </div>
+                                </div>
+                                <div class="match-monitor-time">
+                                    <i class="fa-solid fa-clock"></i>
+                                    <span th:text="${activeMatch.matchDate != null ? activeMatch.matchDate : 'Belum dijadwal'}">Aug 15</span> at
+                                    <span th:text="${activeMatch.matchTime != null ? activeMatch.matchTime : 'Belum dijadwal'}">19:00</span>
+                                </div>
+                            </div>
+
+                            <!-- Registered but no active match -->
+                            <div th:if="${activeMatch == null and myTeam != null}" class="empty-state" style="padding: 1.5rem;">
+                                <i class="fa-solid fa-hourglass-half" style="font-size: 2rem;"></i>
+                                <p style="font-size: 0.9rem;">Belum ada pertandingan aktif untuk tim Anda. Tunggu bracket digenerate oleh admin.</p>
+                            </div>
+
+                            <!-- Not registered -->
+                            <div th:if="${myTeam == null}" class="empty-state" style="padding: 1.5rem;">
+                                <i class="fa-solid fa-shield" style="font-size: 2rem;"></i>
+                                <p style="font-size: 0.9rem;">Silakan daftarkan tim Anda terlebih dahulu untuk memonitor pertandingan.</p>
+                            </div>
+                        </div>
+
+                        <!-- Riwayat Turnamen -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fa-solid fa-archive"></i> Riwayat Turnamen</h3>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 200px; overflow-y: auto;">
+                                <a th:each="hist : ${history}" th:href="@{/user/dashboard(viewTournamentId=${hist.id})}" style="text-decoration: none; display: block; color: inherit;">
+                                    <div style="padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.15); transition: border-color 0.2s; cursor: pointer;"
+                                         onmouseover="this.style.borderColor='var(--secondary)'"
+                                         onmouseout="this.style.borderColor='var(--border)'">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <h4 th:text="${hist.name}" style="font-size: 0.9rem; margin: 0;">Apex Legends League</h4>
+                                            <span class="card-badge"
+                                                  th:classappend="${hist.status == 'BERJALAN' ? 'status-running' : 'status-finished'}"
+                                                  th:text="${hist.status == 'BERJALAN' ? 'BERJALAN' : 'SELESAI'}">ACTIVE</span>
+                                        </div>
+                                        <p th:if="${hist.status == 'SELESAI'}" style="font-size: 0.8rem; color: var(--success); margin-top: 0.25rem; margin-bottom: 0;">
+                                            <i class="fa-solid fa-crown"></i> Juara: <strong th:text="${hist.championTeamName}">TEAM KRAKEN</strong>
+                                        </p>
+                                    </div>
+                                </a>
+                                <div th:if="${history == null or history.isEmpty()}" class="empty-state">
+                                    <p>Belum ada riwayat turnamen.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================== SECTION: BRACKETS ======================== -->
+            <div id="section-brackets" class="dashboard-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fa-solid fa-sitemap"></i> TAMPILAN TURNAMEN</h3>
+                    </div>
+
+                    <!-- No active tournament -->
+                    <div th:if="${activeCup == null}" class="empty-state">
+                        <i class="fa-solid fa-trophy"></i>
+                        <p>Tidak ada turnamen yang sedang berjalan.</p>
+                    </div>
+
+                    <!-- Active tournament but no bracket yet -->
+                    <div th:if="${activeCup != null and (matches == null or matches.isEmpty())}" class="empty-state">
+                        <i class="fa-solid fa-hourglass"></i>
+                        <p>Bagan pertandingan belum dibuat oleh penyelenggara.</p>
+                    </div>
+
+                    <!-- Bracket rounds -->
+                    <div th:if="${activeCup != null and matches != null and !matches.isEmpty()}" class="bracket-wrapper">
+                        <div th:each="r : ${#numbers.sequence(1, maxRound)}" class="bracket-round">
+                            <div class="bracket-round-title" th:text="'Putaran ' + ${r}">Putaran 1</div>
+                            <div th:each="match : ${matches}" th:if="${match.round == r}" class="bracket-match">
+                                <div class="bracket-match-header">
+                                    <span th:text="${match.jadwalTanding != null ? match.jadwalTanding : 'Belum dijadwalkan'}">Waktu</span>
+                                </div>
+                                <!-- Team 1 -->
+                                <div class="bracket-team-row"
+                                     th:classappend="${match.winnerTeamId != null and match.winnerTeamId == match.team1Id} ? 'winner' : ''">
+                                    <span class="bracket-team-name" th:text="${match.team1Name}">Tim 1</span>
+                                    <span class="bracket-team-score" th:text="${match.team1Score != null ? match.team1Score : '-'}">-</span>
+                                </div>
+                                <!-- Team 2 -->
+                                <div class="bracket-team-row"
+                                     th:classappend="${match.winnerTeamId != null and match.winnerTeamId == match.team2Id} ? 'winner' : ''">
+                                    <span class="bracket-team-name">
+                                        <span th:text="${match.team2Name}">Tim 2</span>
+                                        <span th:if="${match.team2Id == 'BYE'}" class="bracket-bye-badge">[BYE]</span>
+                                    </span>
+                                    <span class="bracket-team-score" th:text="${match.team2Score != null ? match.team2Score : '-'}">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================== SECTION: SCHEDULE ======================== -->
+            <div id="section-schedule" class="dashboard-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fa-solid fa-calendar-days"></i> JADWAL TANDING</h3>
+                    </div>
+
+                    <!-- No matches -->
+                    <div th:if="${activeCup == null or matches == null or matches.isEmpty()}" class="empty-state">
+                        <i class="fa-solid fa-calendar-xmark"></i>
+                        <p>Belum ada jadwal pertandingan saat ini.</p>
+                    </div>
+
+                    <!-- Match schedule table -->
+                    <div th:if="${activeCup != null and matches != null and !matches.isEmpty()}" class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Putaran</th>
+                                    <th>Pertandingan</th>
+                                    <th>Jadwal Tanding</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="match : ${matches}">
+                                    <td th:text="'Putaran ' + ${match.round}">Putaran 1</td>
+                                    <td th:text="${match.team1Name} + ' vs ' + ${match.team2Name}">Tim A vs Tim B</td>
+                                    <td th:text="${match.jadwalTanding != null ? match.jadwalTanding : 'Belum dijadwalkan'}">Belum dijadwalkan</td>
+                                    <td>
+                                        <span class="card-badge"
+                                              th:classappend="${match.status == 'SCHEDULED' ? 'status-running' : ((match.status == 'FINISHED' or match.status == 'BYE') ? 'status-finished' : '')}"
+                                              th:text="${match.status == 'SCHEDULED' ? 'TERJADWAL' : (match.status == 'FINISHED' ? 'SELESAI' : 'BYE')}">TERJADWAL</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.dashboard-section').forEach(s => s.style.display = 'none');
+            document.getElementById(sectionId).style.display = 'block';
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(sectionId)) {
+                    item.classList.add('active');
+                }
+            });
+        }
+
+        function toggleRegForm() {
+            var banner = document.getElementById('joinTournamentBanner');
+            var form = document.getElementById('registrationFormCard');
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+                banner.style.display = 'none';
+            } else {
+                form.style.display = 'none';
+                banner.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

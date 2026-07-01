@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRACKTIX - Daftar Akun</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="gateway-container">
+        <!-- Left Side: Brand Presentation -->
+        <div class="gateway-graphic-side">
+            <div class="gateway-graphic-content">
+                <h1 class="gateway-graphic-title">BRACKTIX</h1>
+                <p class="gateway-graphic-description">
+                    Aplikasi Web Manajemen Turnamen Esports.
+                    Daftar sekarang untuk berpartisipasi sebagai Kapten Tim atau selenggarakan turnamen sebagai Admin.
+                </p>
+            </div>
+        </div>
+
+        <!-- Right Side: Register Form -->
+        <div class="gateway-form-side">
+            <div class="gateway-form-card" style="max-width: 460px;">
+                <div class="gateway-form-header">
+                    <h2>BUAT AKUN</h2>
+                    <p>Bergabunglah dengan pusat turnamen BRACKTIX</p>
+                </div>
+                
+                <div th:if="${error}" class="text-danger text-center mb-3" style="font-size: 0.9rem;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> <span th:text="${error}"></span>
+                </div>
+
+                <form th:action="@{/register}" method="POST" id="registerForm">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <div style="position: relative;">
+                            <i class="fa-solid fa-user" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                            <input type="text" id="username" name="username" class="form-control" style="padding-left: 2.5rem;" placeholder="Username baru" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div style="position: relative;">
+                            <i class="fa-solid fa-lock" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                            <input type="password" id="password" name="password" class="form-control" style="padding-left: 2.5rem;" placeholder="Password baru" required>
+                        </div>
+                    </div>
+
+                    <!-- Captain specific fields -->
+                    <div id="captainFields">
+                        <div class="form-group">
+                            <label for="captainName">Nama Lengkap Kapten</label>
+                            <div style="position: relative;">
+                                <i class="fa-solid fa-id-card" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                                <input type="text" id="captainName" name="captainName" class="form-control" style="padding-left: 2.5rem;" placeholder="Nama lengkap kapten">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact">Kontak Kapten (Email/WhatsApp)</label>
+                            <div style="position: relative;">
+                                <i class="fa-solid fa-address-book" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                                <input type="text" id="contact" name="contact" class="form-control" style="padding-left: 2.5rem;" placeholder="Contoh: 08123456789">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 mt-3">
+                        Daftar Sekarang <i class="fa-solid fa-user-plus"></i>
+                    </button>
+                </form>
+
+                <div class="gateway-form-link">
+                    Sudah punya akun? <a th:href="@{/login}">Masuk</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

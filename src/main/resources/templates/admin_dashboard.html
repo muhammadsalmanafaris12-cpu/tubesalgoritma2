@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRACKTIX - Dasbor Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div>
+                    <h2 class="brand-logo">BRACKTIX</h2>
+                    <p class="brand-subtitle">Pusat Admin</p>
+                </div>
+            </div>
+
+            <ul class="nav-menu">
+                <li class="nav-item active" onclick="showSection('section-dashboard')">
+                    <a href="javascript:void(0)"><i class="fa-solid fa-chart-line"></i> Dasbor</a>
+                </li>
+                <li class="nav-item" onclick="showSection('section-create-cup')">
+                    <a href="javascript:void(0)"><i class="fa-solid fa-trophy"></i> Buat Turnamen</a>
+                </li>
+                <li class="nav-item" onclick="showSection('section-teams')">
+                    <a href="javascript:void(0)"><i class="fa-solid fa-users"></i> Daftar Tim</a>
+                </li>
+                <li class="nav-item" onclick="showSection('section-brackets')">
+                    <a href="javascript:void(0)"><i class="fa-solid fa-sitemap"></i> Bagan</a>
+                </li>
+                <li class="nav-item" onclick="showSection('section-schedule')">
+                    <a href="javascript:void(0)"><i class="fa-solid fa-calendar-days"></i> Jadwal</a>
+                </li>
+            </ul>
+
+            <div class="user-profile-widget">
+                <span class="user-profile-name" th:text="${session.user != null ? session.user.username : 'Admin'}">Admin</span>
+                <span class="user-profile-role">PENYELENGGARA</span>
+                <a th:href="@{/logout}" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Keluar</a>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard View -->
+        <main class="main-content">
+            <!-- HEADER -->
+            <div class="header-container">
+                <div class="header-title">
+                    <h1>Panel Kontrol</h1>
+                    <p>Kelola dan koordinasikan turnamen esports secara real-time</p>
+                </div>
+                <div>
+                    <span class="card-badge status-running" style="padding: 0.5rem 1rem; font-size: 0.8rem; border-radius: 20px;">
+                        <i class="fa-solid fa-circle-dot" style="color: var(--accent); margin-right: 0.25rem;"></i> Sistem Aktif
+                    </span>
+                </div>
+            </div>
+
+            <!-- ======================== SECTION: MAIN DASHBOARD ======================== -->
+            <div id="section-dashboard" class="dashboard-section">
+
+                <!-- Active Cup Banner -->
+                <div th:if="${activeCup != null}" class="active-cup-banner">
+                    <div class="active-cup-info">
+                        <p style="text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; color: var(--secondary);">Piala Aktif</p>
+                        <h3 th:text="${activeCup.name + ' (' + activeCup.game + ')'}">Valorant Pro Series</h3>
+                        <p><i class="fa-solid fa-calendar"></i> Mulai: <span th:text="${#temporals.format(activeCup.startDate, 'dd-MM-yyyy')}">15 Aug 2026</span></p>
+                    </div>
+                    <div>
+                        <span class="card-badge status-running">Running</span>
+                    </div>
+                </div>
+
+                <div th:if="${activeCup == null}" class="active-cup-banner" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(18, 16, 30, 0.9)); border-color: var(--danger);">
+                    <div class="active-cup-info">
+                        <h3>Tidak Ada Turnamen Berjalan</h3>
+                        <p>Buat turnamen baru untuk memulai pendaftaran skuad.</p>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="showSection('section-create-cup')">Buat Sekarang</button>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Quick Stats -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fa-solid fa-database"></i> Overview Turnamen</h3>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: center;">
+                            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <h4 style="font-size: 2.2rem; color: var(--secondary);" th:text="${teams != null ? teams.size() : 0}">0</h4>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Skuad Terdaftar</p>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <h4 style="font-size: 2.2rem; color: var(--success);" th:text="${matches != null ? matches.size() : 0}">0</h4>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Pertandingan</p>
+                            </div>
+                        </div>
+
+                        <div th:if="${activeCup != null}" style="margin-top: 1.5rem;">
+                            <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem; text-transform: uppercase; color: var(--text-muted);">Aksi Cepat</h4>
+                            <div style="display: flex; gap: 1rem;">
+                                <form th:action="@{/admin/bracket/generate}" method="POST">
+                                    <input type="hidden" name="tournamentId" th:value="${activeCup.id}">
+                                    <button type="submit" class="btn btn-secondary btn-sm"
+                                            th:disabled="${teams == null or teams.size() < 2}">
+                                        <i class="fa-solid fa-shuffle"></i> Acak Bracket
+                                    </button>
+                                </form>
+                                <button class="btn btn-primary btn-sm" onclick="showSection('section-brackets')">Input Skor</button>
+                            </div>
+                            <small th:if="${teams != null and teams.size() < 2}" class="text-danger mt-3 d-block">Dibutuhkan minimal 2 tim untuk membuat bracket.</small>
+                        </div>
+                    </div>
+
+                    <!-- Riwayat Turnamen -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fa-solid fa-archive"></i> Riwayat Turnamen</h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; max-height: 250px; overflow-y: auto;">
+                            <div th:each="hist : ${history}" style="padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.15);">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <h4 th:text="${hist.name}" style="font-size: 0.95rem;">Apex Legends League</h4>
+                                    <span class="card-badge"
+                                          th:classappend="${hist.status == 'BERJALAN' ? 'status-running' : 'status-finished'}"
+                                          th:text="${hist.status}">ACTIVE</span>
+                                </div>
+                                <p style="font-size: 0.75rem; color: var(--text-muted);" th:text="${hist.game}">Apex Legends</p>
+                                <p th:if="${hist.status == 'SELESAI'}" style="font-size: 0.8rem; color: var(--success); margin-top: 0.25rem;">
+                                    <i class="fa-solid fa-crown"></i> Juara: <strong th:text="${hist.championTeamName}">TEAM KRAKEN</strong>
+                                </p>
+                            </div>
+                            <div th:if="${history == null or history.isEmpty()}" class="empty-state">
+                                <i class="fa-solid fa-folder-open"></i>
+                                <p>Belum ada riwayat turnamen.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-create-cup" class="dashboard-section" style="display: none;">
+                <div class="card" style="max-width: 600px; margin: 0 auto;">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fa-solid fa-trophy"></i> Buat Turnamen Baru</h3>
+                    </div>
+                    <form th:action="@{/admin/tournament/create}" method="POST">
+                        <div class="form-group">
+                            <label for="cupName">Nama Turnamen</label>
+                            <input type="text" id="cupName" name="name" class="form-control" placeholder="Contoh: Valorant Pro Series" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="gameName">Nama Game</label>
+                            <input type="text" id="gameName" name="game" class="form-control" placeholder="Contoh: Valorant" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="startDate">Tanggal Mulai</label>
+                            <input type="date" id="startDate" name="startDate" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mt-3"
+                                th:disabled="${activeCup != null}">
+                            Buat Turnamen <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </form>
+                    <div th:if="${activeCup != null}" class="text-danger text-center mt-3" style="font-size: 0.85rem;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Ada turnamen yang sedang berjalan. Selesaikan dulu sebelum membuat yang baru.
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================== SECTION: TEAMS ======================== -->
+            <div id="section-teams" class="dashboard-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fa-solid fa-users"></i> Pendaftaran Skuad</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Nama Skuad</th>
+                                    <th>Kapten</th>
+                                    <th>Kontak</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="team : ${teams}">
+                                    <td th:text="${team.name}">AETHER SQUAD</td>
+                                    <td th:text="${team.captainName}">Captain</td>
+                                    <td th:text="${team.contact}">08123</td>
+                                    <td><span class="card-badge status-finished" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Aktif</span></td>
+                                    <td>
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <button class="btn btn-secondary btn-sm"
+                                                    th:data-id="${team.id}"
+                                                    th:data-name="${team.name}"
+                                                    th:data-captain="${team.captainName}"
+                                                    th:data-contact="${team.contact}"
+                                                    onclick="openEditModal(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-captain'), this.getAttribute('data-contact'))">
+                                                <i class="fa-solid fa-edit"></i>
+                                            </button>
+                                            <form th:action="@{/admin/team/delete}" method="POST" style="display: inline;"
+                                                  onsubmit="return confirm('Hapus tim ini?')">
+                                                <input type="hidden" name="id" th:value="${team.id}">
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${teams == null or teams.isEmpty()}">
+                                    <td colspan="5" class="text-center text-muted" style="padding: 2rem;">Belum ada tim terdaftar.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================== SECTION: BRACKETS ======================== -->
+            <div id="section-brackets" class="dashboard-section" style="display: none;">
+
+                <!-- Belum Ada Turnamen Aktif -->
+                <div th:if="${activeCup == null}" class="card text-center text-muted" style="padding: 3rem;">
+                    <i class="fa-solid fa-trophy" style="font-size: 3rem; color: var(--border); margin-bottom: 1rem;"></i>
+                    <p>Buat turnamen baru terlebih dahulu untuk mengakses menu bagan.</p>
+                </div>
+
+                <!-- Bracket Content (only when active cup exists) -->
+                <div th:if="${activeCup != null}" class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fa-solid fa-sitemap"></i> PEMBUAT BAGAN</h3>
+                            <form th:action="@{/admin/bracket/generate}" method="POST" style="margin-left: auto;">
+                                <input type="hidden" name="tournamentId" th:value="${activeCup.id}">
+                                <button type="submit" class="btn btn-primary btn-sm"
+                                        th:disabled="${teams == null or teams.size() < 2}">
+                                    <i class="fa-solid fa-shuffle"></i> BUAT BAGAN
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Bagan Belum Dibuat -->
+                        <div th:if="${matches == null or matches.isEmpty()}" class="empty-state">
+                            <i class="fa-solid fa-circle-question"></i>
+                            <p>Bagan belum dibuat. Klik tombol "BUAT BAGAN" di atas untuk mengacak pertandingan pertama.</p>
+                        </div>
+
+                        <!-- Bracket Rounds -->
+                        <div th:if="${matches != null and !matches.isEmpty()}" class="bracket-wrapper">
+                            <div th:each="r : ${#numbers.sequence(1, maxRound)}" class="bracket-round">
+                                <div class="bracket-round-title" th:text="'Putaran ' + ${r}">Putaran 1</div>
+                                <div th:each="match : ${matches}" th:if="${match.round == r}" class="bracket-match">
+                                    <div class="bracket-match-header">
+                                        <span th:text="${match.jadwalTanding != null ? match.jadwalTanding : 'Belum dijadwalkan'}">Waktu</span>
+                                    </div>
+                                    <!-- Team 1 -->
+                                    <div class="bracket-team-row"
+                                         th:classappend="${match.winnerTeamId != null and match.winnerTeamId == match.team1Id} ? 'winner' : ''">
+                                        <span class="bracket-team-name" th:text="${match.team1Name}">Team 1</span>
+                                        <span class="bracket-team-score" th:text="${match.team1Score != null ? match.team1Score : '-'}">-</span>
+                                    </div>
+                                    <!-- Team 2 -->
+                                    <div class="bracket-team-row"
+                                         th:classappend="${match.winnerTeamId != null and match.winnerTeamId == match.team2Id} ? 'winner' : ''">
+                                        <span class="bracket-team-name">
+                                            <span th:text="${match.team2Name}">Team 2</span>
+                                            <span th:if="${match.team2Id == 'BYE'}" class="bracket-bye-badge">[BYE]</span>
+                                        </span>
+                                        <span class="bracket-team-score" th:text="${match.team2Score != null ? match.team2Score : '-'}">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kontrol Skor Admin -->
+                    <div class="card" th:if="${matches != null and !matches.isEmpty()}">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fa-solid fa-gamepad"></i> KONTROL ADMIN</h3>
+                        </div>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Masukkan skor untuk menentukan pemenang pertandingan.</p>
+                        <form th:action="@{/admin/match/score}" method="POST">
+                            <div class="form-group">
+                                <label for="matchSelect">Pilih Pertandingan</label>
+                                <select id="matchSelect" name="matchId" class="form-control" required onchange="updateTeamLabels()">
+                                    <option value="">-- Pilih Pertandingan (Jadwal Sudah Diatur) --</option>
+                                    <option th:each="m : ${matches}"
+                                            th:if="${m.status == 'SCHEDULED' and m.jadwalTanding != null}"
+                                            th:value="${m.id}"
+                                            th:text="${m.team1Name} + ' vs ' + ${m.team2Name}"
+                                            th:data-t1="${m.team1Name}"
+                                            th:data-t2="${m.team2Name}">
+                                    </option>
+                                </select>
+                            </div>
+                            <div id="scoringInputs" style="display: none;">
+                                <div class="form-group">
+                                    <label id="lblTeam1" for="team1Score">Skor Tim 1</label>
+                                    <input type="number" id="team1Score" name="team1Score" class="form-control" min="0" required>
+                                </div>
+                                <div class="form-group">
+                                    <label id="lblTeam2" for="team2Score">Skor Tim 2</label>
+                                    <input type="number" id="team2Score" name="team2Score" class="form-control" min="0" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 mt-2">
+                                    Finalisasi Pemenang <i class="fa-solid fa-check"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================== SECTION: SCHEDULE ======================== -->
+            <div id="section-schedule" class="dashboard-section" style="display: none;">
+
+                <!-- Belum Ada Turnamen Aktif -->
+                <div th:if="${activeCup == null}" class="card text-center text-muted" style="padding: 3rem;">
+                    <i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: var(--border); margin-bottom: 1rem;"></i>
+                    <p>Buat turnamen baru terlebih dahulu untuk mengakses menu jadwal.</p>
+                </div>
+
+                <!-- Schedule Content -->
+                <div th:if="${activeCup != null}" class="card">
+                    <!-- Match Fixtures Table -->
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fa-solid fa-list-ol"></i> Jadwal Pertandingan</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Putaran</th>
+                                    <th>Pertandingan</th>
+                                    <th>Jadwal Tanding</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="match : ${matches}">
+                                    <td th:text="'Putaran ' + ${match.round}">Putaran 1</td>
+                                    <td th:text="${match.team1Name} + ' vs ' + ${match.team2Name}">Tim A vs Tim B</td>
+                                    <td th:text="${match.jadwalTanding != null ? match.jadwalTanding : 'Belum dijadwalkan'}">Belum dijadwalkan</td>
+                                    <td>
+                                        <span class="card-badge"
+                                              th:classappend="${match.status == 'SCHEDULED' ? 'status-running' : ((match.status == 'FINISHED' or match.status == 'BYE') ? 'status-finished' : '')}"
+                                              th:text="${match.status == 'SCHEDULED' ? 'TERJADWAL' : (match.status == 'FINISHED' ? 'SELESAI' : 'BYE')}">TERJADWAL</span>
+                                    </td>
+                                    <td>
+                                        <button th:if="${match.status == 'SCHEDULED'}"
+                                                class="btn btn-secondary btn-sm"
+                                                th:data-id="${match.id}"
+                                                th:data-t1="${match.team1Name}"
+                                                th:data-t2="${match.team2Name}"
+                                                th:data-date="${match.matchDate}"
+                                                th:data-time="${match.matchTime}"
+                                                onclick="openScheduleModal(this.getAttribute('data-id'), this.getAttribute('data-t1'), this.getAttribute('data-t2'), this.getAttribute('data-date'), this.getAttribute('data-time'))">
+                                            Atur Jadwal <i class="fa-solid fa-calendar-plus"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr th:if="${matches == null or matches.isEmpty()}">
+                                    <td colspan="5" class="text-center text-muted" style="padding: 2rem;">Bagan belum dibuat.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Edit Team Modal -->
+    <div id="editModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+         overflow: auto; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center;">
+        <div class="card" style="width: 100%; max-width: 450px; margin: 1.5rem;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-user-edit"></i> Edit Info Skuad</h3>
+                <span onclick="closeEditModal()" style="cursor: pointer; font-size: 1.5rem; color: var(--text-muted);">&times;</span>
+            </div>
+            <form th:action="@{/admin/team/update}" method="POST">
+                <input type="hidden" id="editTeamId" name="id">
+                <div class="form-group">
+                    <label for="editTeamName">Nama Resmi Skuad</label>
+                    <input type="text" id="editTeamName" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCaptainName">Nama Kapten</label>
+                    <input type="text" id="editCaptainName" name="captainName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="editContact">Kontak Kapten</label>
+                    <input type="text" id="editContact" name="contact" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-3">
+                    Update Skuad <i class="fa-solid fa-save"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Atur Jadwal Modal -->
+    <div id="scheduleModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+         overflow: auto; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center;">
+        <div class="card" style="width: 100%; max-width: 450px; margin: 1.5rem;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-clock"></i> Atur Jadwal Tanding</h3>
+                <span onclick="closeScheduleModal()" style="cursor: pointer; font-size: 1.5rem; color: var(--text-muted);">&times;</span>
+            </div>
+            <form th:action="@{/admin/match/schedule}" method="POST"
+                  onsubmit="return validateScheduleForm()">
+                <input type="hidden" id="scheduleMatchId" name="matchId">
+                <div class="form-group">
+                    <label>Pertandingan</label>
+                    <input type="text" id="scheduleMatchTitle" class="form-control" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted);">
+                </div>
+                <div class="form-group">
+                    <label for="schedMatchDate">Tanggal Tanding</label>
+                    <input type="date" id="schedMatchDate" name="matchDate" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Jam Tanding (Format 24 Jam)</label>
+                    <input type="hidden" id="schedMatchTime" name="matchTime">
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <div style="flex: 1;">
+                            <select id="schedHour" class="form-control" onchange="updateCombinedTime()" required>
+                                <option value="">-- Jam --</option>
+                                <option value="00">00 (Tengah Malam)</option>
+                                <option value="01">01</option>
+                                <option value="02">02</option>
+                                <option value="03">03</option>
+                                <option value="04">04</option>
+                                <option value="05">05</option>
+                                <option value="06">06 (Subuh)</option>
+                                <option value="07">07</option>
+                                <option value="08">08</option>
+                                <option value="09">09</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12 (Siang)</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="19">19</option>
+                                <option value="20">20</option>
+                                <option value="21">21</option>
+                                <option value="22">22</option>
+                                <option value="23">23</option>
+                            </select>
+                        </div>
+                        <span style="color: var(--secondary); font-size: 1.4rem; font-weight: bold;">:</span>
+                        <div style="flex: 1;">
+                            <select id="schedMinute" class="form-control" onchange="updateCombinedTime()" required>
+                                <option value="">-- Menit --</option>
+                                <option value="00">00</option>
+                                <option value="05">05</option>
+                                <option value="10">10</option>
+                                <option value="15">15</option>
+                                <option value="20">20</option>
+                                <option value="25">25</option>
+                                <option value="30">30</option>
+                                <option value="35">35</option>
+                                <option value="40">40</option>
+                                <option value="45">45</option>
+                                <option value="50">50</option>
+                                <option value="55">55</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-3">
+                    Simpan Jadwal <i class="fa-solid fa-calendar-check"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.dashboard-section').forEach(s => s.style.display = 'none');
+            document.getElementById(sectionId).style.display = 'block';
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(sectionId)) {
+                    item.classList.add('active');
+                }
+            });
+        }
+
+        function openEditModal(id, name, captain, contact) {
+            document.getElementById('editTeamId').value = id;
+            document.getElementById('editTeamName').value = name;
+            document.getElementById('editCaptainName').value = captain;
+            document.getElementById('editContact').value = contact;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function openScheduleModal(id, t1, t2, currentDate, currentTime) {
+            document.getElementById('scheduleMatchId').value = id;
+            document.getElementById('scheduleMatchTitle').value = "M-" + id + " : " + t1 + " vs " + t2;
+            document.getElementById('schedMatchDate').value = currentDate || "";
+            // Parse existing time to pre-fill hour/minute selects
+            if (currentTime) {
+                var parts = currentTime.split(':');
+                document.getElementById('schedHour').value = parts[0] || "";
+                document.getElementById('schedMinute').value = parts[1] || "00";
+                document.getElementById('schedMatchTime').value = currentTime;
+            } else {
+                document.getElementById('schedHour').value = "";
+                document.getElementById('schedMinute').value = "";
+                document.getElementById('schedMatchTime').value = "";
+            }
+            document.getElementById('scheduleModal').style.display = 'flex';
+        }
+
+        function closeScheduleModal() {
+            document.getElementById('scheduleModal').style.display = 'none';
+        }
+
+        function updateCombinedTime() {
+            var h = document.getElementById('schedHour').value;
+            var m = document.getElementById('schedMinute').value;
+            if (h !== '' && m !== '') {
+                document.getElementById('schedMatchTime').value = h + ':' + m;
+            }
+        }
+
+        function validateScheduleForm() {
+            var h = document.getElementById('schedHour').value;
+            var m = document.getElementById('schedMinute').value;
+            var d = document.getElementById('schedMatchDate').value;
+            if (!d) {
+                alert('Harap pilih tanggal tanding terlebih dahulu.');
+                return false;
+            }
+            if (!h || !m) {
+                alert('Harap pilih jam dan menit tanding terlebih dahulu.');
+                return false;
+            }
+            return true;
+        }
+
+        function updateTeamLabels() {
+            let select = document.getElementById('matchSelect');
+            let option = select.options[select.selectedIndex];
+            let inputDiv = document.getElementById('scoringInputs');
+            if (!select.value) {
+                inputDiv.style.display = 'none';
+                return;
+            }
+            let t1 = option.getAttribute('data-t1');
+            let t2 = option.getAttribute('data-t2');
+            document.getElementById('lblTeam1').innerText = "Skor " + t1;
+            document.getElementById('lblTeam2').innerText = "Skor " + t2;
+            inputDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
